@@ -1,14 +1,14 @@
 from enum import StrEnum
-from pandas import Timestamp
+from pandas import Timestamp, Int64Dtype, Float64Dtype
 
 
-class FieldHolder(StrEnum):
+class FieldEnum(StrEnum):
     """
     Hepler wrapper of StrEnum to reduce boilerplate 
     when querying and loading from database
     """
     @classmethod
-    def _get_suffixed(cls, suffix):
+    def get_suffixed(cls, suffix):
         """
         Return string of values delimited by , and joined by . 
         in format of psql query
@@ -31,11 +31,29 @@ class FieldHolder(StrEnum):
         return [s.name for s in cls]
 
 
-class SPFields(FieldHolder):
+class DTypeEnum(StrEnum):
     @classmethod
-    def get_suffixed(cls):
-        return cls._get_suffixed('SP')
-    
+    def get_fields(cls):
+        pass
+
+    @classmethod
+    def split_dtypes(cls):
+        """
+        Split Dtypes into those which are coercible through pandas and 
+        ones which will be treated separately.
+        """
+        fields = cls.get_fields()
+        normal_dtypes, special_dtypes = {}, {}
+        for name, value in cls.__members__.items():
+            if name in fields:
+                if value in ['String', 'Integer', 'Text', 'Datetime', 'Float']:
+                    normal_dtypes[name] = dtype_wiki2pandas[value]
+                else:
+                    special_dtypes[name] = value
+        return normal_dtypes, special_dtypes
+
+
+class SPFields(FieldEnum):
     name = 'Name'
     champion = 'Champion'
     kills = 'Kills'
@@ -75,41 +93,11 @@ class SPFields(FieldHolder):
     game_role_id_vs = 'GameRoleIdVs'
 
 
-
-class SGFields(FieldHolder):
-    @classmethod
-    def get_suffixed(cls):
-        return cls._get_suffixed('SG')
-
-    tournament = 'Tournament'
-    team1 = 'Team1'
-    team2 = 'Team2'
-    win_team = 'WinTeam'
-    loss_team = 'LossTeam'
-    datetime_utc = 'DateTime_UTC'
-    team_1_score = 'Team1Score'
-    team_2_score = 'Team2Score'
-    game_length = 'Gamelength_Number'
-    team_1_picks = 'Team1Picks'
-    team_2_picks = 'Team2Picks'
-    team_1_gold = 'Team1Gold'
-    team_2_gold = 'Team2Gold'
-    team_1_kills = 'Team1Kills'
-    team_2_kills = 'Team2Kills'
-    game_id = 'GameId'
-    match_id = 'MatchId'
-
-
-class DTypeEnum(StrEnum):
-    @classmethod
-    def dtypes_map(cls):
-        return {
-            name: dtype_wiki2pandas[value.value]
-            for name, value in cls.__members__.items()
-            if value in ['String', 'Integer', 'Text', 'Datetime']
-        }
-
 class SPDTypes(DTypeEnum):
+    @classmethod
+    def get_fields(cls):
+        return SPFields
+
     Name = 'String'
     Champion = 'String'
     Kills = 'Integer'
@@ -148,9 +136,105 @@ class SPDTypes(DTypeEnum):
     GameRoleId = 'String'
     GameRoleIdVs = 'String'
 
+
+class SGFields(FieldEnum):
+    tournament = 'Tournament'
+    team1 = 'Team1'
+    team2 = 'Team2'
+    win_team = 'WinTeam'
+    loss_team = 'LossTeam'
+    datetime_utc = 'DateTime_UTC'
+    team_1_score = 'Team1Score'
+    team_2_score = 'Team2Score'
+    winner = 'Winner'
+    game_length = 'Gamelength_Number'
+    team_1_bans = 'Team1Bans'
+    team_2_bans = 'Team2Bans'
+    team_1_picks = 'Team1Picks'
+    team_2_picks = 'Team2Picks'
+    team_1_players = 'Team1Players'
+    team_2_players = 'Team2Players'
+    team_1_dragons = 'Team1Dragons'
+    team_2_dragons = 'Team2Dragons'
+    team_1_barons = 'Team1Barons'
+    team_2_barons = 'Team2Barons'
+    team_1_towers = 'Team1Towers'
+    team_2_towers = 'Team2Towers'
+    team_1_gold = 'Team1Gold'
+    team_2_gold = 'Team2Gold'
+    team_1_kills = 'Team1Kills'
+    team_2_kills = 'Team2Kills'
+    match_history = 'MatchHistory'
+    game_name = 'Gamename'
+    unique_line = 'UniqueLine'
+    game_id = 'GameId'
+    match_id = 'MatchId'
+    riot_game_id = 'RiotGameId'
+
+
+class SGDTypes(DTypeEnum):
+    @classmethod
+    def get_fields(cls):
+        return SGFields
+
+    OverviewPage = 'String'
+    Tournament = 'String'
+    Team1 = 'String'
+    Team2 = 'String'
+    WinTeam = 'String'
+    LossTeam = 'String'
+    DateTime_UTC = 'Datetime'
+    DST = 'String'
+    Team1Score = 'Integer'
+    Team2Score = 'Integer'
+    Winner = 'Integer'
+    Gamelength = 'String'
+    Gamelength_Number = 'Float'
+    Team1Bans = 'List of String, delimiter: ,'
+    Team2Bans = 'List of String, delimiter: ,'
+    Team1Picks = 'List of String, delimiter: ,'
+    Team2Picks = 'List of String, delimiter: ,'
+    Team1Players = 'List of String, delimiter: ,'
+    Team2Players = 'List of String, delimiter: ,'
+    Team1Dragons = 'Integer'
+    Team2Dragons = 'Integer'
+    Team1Barons = 'Integer'
+    Team2Barons = 'Integer'
+    Team1Towers = 'Integer'
+    Team2Towers = 'Integer'
+    Team1Gold = 'Float'
+    Team2Gold = 'Float'
+    Team1Kills = 'Integer'
+    Team2Kills = 'Integer'
+    Team1RiftHeralds = 'Integer'
+    Team2RiftHeralds = 'Integer'
+    Team1VoidGrubs = 'Integer'
+    Team2VoidGrubs = 'Integer'
+    Team1Inhibitors = 'Integer'
+    Team2Inhibitors = 'Integer'
+    Patch = 'String'
+    PatchSort = 'String'
+    MatchHistory = 'String'
+    VOD = 'Wikitext'
+    N_Page = 'Integer'
+    N_MatchInTab = 'Integer'
+    N_MatchInPage = 'Integer'
+    N_GameInMatch = 'Integer'
+    Gamename = 'String'
+    UniqueLine = 'String'
+    GameId = 'String'
+    MatchId = 'String'
+    RiotPlatformGameId = 'String'
+    RiotPlatformId = 'String'
+    RiotGameId = 'String'
+    RiotHash = 'String'
+    RiotVersion = 'Integer'
+
+
 dtype_wiki2psql = {
     'String': 'VARCHAR (256)',
     'Integer': 'INT',
+    'Float': 'FLOAT',
     'Datetime': 'TIMESTAMP',
     'Text': 'VARCHAR (256)',
     'List of String, delimiter: ;': 'TEXT[]' ,
@@ -158,11 +242,11 @@ dtype_wiki2psql = {
     'List of String delimiter: ;': 'TEXT[]'
 }
 
+
 dtype_wiki2pandas = {
-    'String': str,
-    'Text': str,
-    'Integer': int,
-    'Datetime': Timestamp
-
+    'String': 'string',
+    'Text': 'string',
+    'Integer': Int64Dtype(),
+    'Float': Float64Dtype(),
+    'Datetime': 'datetime64[s]'
 }
-

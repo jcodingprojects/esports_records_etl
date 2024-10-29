@@ -3,27 +3,19 @@ import time
 from collections.abc import Iterable, Awaitable
 import concurrent.futures
 import random
-from api_base import APIInterface
+from api_base import Interface
 
 api_returns = [1, 2, 3, 4, 6, 5]
 
 
 
 class ETLManager:
-    def __init__(
-            self,
-            rate: float,
-            n_workers: int,
-            start_date: str,
-            end_date: str,
-            table : APIInterface
-    ):
+    def __init__( self, rate: float, n_workers: int, start_date: str, end_date: str, interface : Interface):
         self.n_workers = n_workers
         self.rate = rate
         self.start_date = start_date
         self.end_date = end_date
-        self.table = table
-        pass
+        self.interface = interface
 
 
     async def rate_limited_offset(self, queue):
@@ -73,11 +65,13 @@ class ETLManager:
         loop = asyncio.get_running_loop()
 
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            result = await loop.run_in_executor(
+            query_result = await loop.run_in_executor(
                 pool,
-                self.table.query_api,
+                self.interface.api_interface.query_api,
                 offset, self.start_date, self.end_date
             )
+            await self.interface.local_interface.insert_new(query_result)
+
 
 
         if bool(api_returns):
