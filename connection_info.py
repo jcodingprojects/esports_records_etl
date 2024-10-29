@@ -33,7 +33,7 @@ class DBConnection:
     async def get_async_con(cls) -> asyncpg.Connection:
         return await asyncpg.connect(
             host=cls.db_host,
-            port=cls.db_host,
+            port=cls.db_port,
             user=cls.db_username,
             password=cls.db_password,
             database=cls.db_name

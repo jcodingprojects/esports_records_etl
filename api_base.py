@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import asyncpg
 from pandas import DataFrame
-from fields import SPFields, SGFields
+from fields import SPFields, SGFields, SPDTypes
 from connection_info import ApiConnection, DBConnection
 
 
@@ -57,6 +57,8 @@ class ScoreboardGamesInterface(APIInterface):
 class ScoreboardPlayersInterface(APIInterface):
     """Interface for the Scoreboard Players table"""
     def __init__(self):
+        self.fields = SPFields
+        self.wiki_dtypes = SPDTypes
         super().__init__()
 
 
@@ -65,7 +67,7 @@ class ScoreboardPlayersInterface(APIInterface):
 
         query_result = client.cargo_client.query(
             tables='ScoreboardPlayers=SP',
-            fields=SPFields.get_suffixed(),
+            fields=self.fields.get_suffixed(),
             limit=limit,
             offset=offset,
             where=(
@@ -75,11 +77,23 @@ class ScoreboardPlayersInterface(APIInterface):
                 """
             )
         )
+        query_result = DataFrame(query_result)
+        query_result.columns = [c.replace(' ', '_') for c in query_result]
         return query_result
 
+    def clean_query(self, query): 
+        del_str = 'List of String, delimiter'
+        for col in query:
+            dtype = self.dtype_map[col]
+            match dtype:
+                case 'String':
+                    query[col] = query[col]
 
     def insert_new(self, entries):
         return super().insert_new(entries)
+
+
+
 
 
 def main():

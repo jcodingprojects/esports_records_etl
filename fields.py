@@ -1,5 +1,5 @@
 from enum import StrEnum
-
+from pandas import Timestamp
 
 
 class FieldHolder(StrEnum):
@@ -40,13 +40,22 @@ class SPFields(FieldHolder):
     champion = 'Champion'
     kills = 'Kills'
     deaths = 'Deaths'
+    assists = 'Assists'
+    summoner_spells = 'SummonerSpells'
     gold = 'Gold'
     cs = 'CS'
     champ_damage = 'DamageToChampions'
+    vision_score = 'VisionScore'
+    items = 'Items'
+    keystone_mastery = 'KeystoneMastery'
+    keystone_rune = 'KeystoneRune'
+    primary_tree = 'PrimaryTree'
+    secondary_tree = 'SecondaryTree'
+    runes = 'Runes'
     team_kills = 'TeamKills'
     team_gold = 'TeamGold'
     team = 'Team'
-    team_vs = 'Team'
+    team_vs = 'TeamVs'
     game_time = 'Time'
     win = 'PlayerWin'
     datetime_utc = 'DateTime_UTC'
@@ -66,11 +75,11 @@ class SPFields(FieldHolder):
     game_role_id_vs = 'GameRoleIdVs'
 
 
+
 class SGFields(FieldHolder):
     @classmethod
     def get_suffixed(cls):
         return cls._get_suffixed('SG')
-
 
     tournament = 'Tournament'
     team1 = 'Team1'
@@ -89,3 +98,71 @@ class SGFields(FieldHolder):
     team_2_kills = 'Team2Kills'
     game_id = 'GameId'
     match_id = 'MatchId'
+
+
+class DTypeEnum(StrEnum):
+    @classmethod
+    def dtypes_map(cls):
+        return {
+            name: dtype_wiki2pandas[value.value]
+            for name, value in cls.__members__.items()
+            if value in ['String', 'Integer', 'Text', 'Datetime']
+        }
+
+class SPDTypes(DTypeEnum):
+    Name = 'String'
+    Champion = 'String'
+    Kills = 'Integer'
+    Deaths = 'Integer'
+    Assists = 'Integer'
+    SummonerSpells = 'List of String, delimiter: ,'
+    Gold = 'Integer'
+    CS = 'Integer'
+    DamageToChampions = 'Integer'
+    VisionScore = 'Integer'
+    Items = 'List of String delimiter: ;'
+    KeystoneMastery = 'String'
+    KeystoneRune = 'String'
+    PrimaryTree = 'String'
+    SecondaryTree = 'String'
+    Runes = 'Text'
+    TeamKills = 'Integer'
+    TeamGold = 'Integer'
+    Team = 'String'
+    TeamVs = 'String'
+    Time = 'Datetime'
+    PlayerWin = 'String'
+    DateTime_UTC = 'Datetime'
+    Tournament = 'String'
+    Role = 'String'
+    Role_Number = 'Integer'
+    IngameRole = 'String'
+    Side = 'Integer'
+    UniqueLine = 'String'
+    UniqueLineVs = 'String'
+    UniqueRole = 'String'
+    UniqueRoleVs = 'String'
+    GameId = 'String'
+    MatchId = 'String'
+    GameTeamId = 'String'
+    GameRoleId = 'String'
+    GameRoleIdVs = 'String'
+
+dtype_wiki2psql = {
+    'String': 'VARCHAR (256)',
+    'Integer': 'INT',
+    'Datetime': 'TIMESTAMP',
+    'Text': 'VARCHAR (256)',
+    'List of String, delimiter: ;': 'TEXT[]' ,
+    'List of String, delimiter: ,': 'TEXT[]',
+    'List of String delimiter: ;': 'TEXT[]'
+}
+
+dtype_wiki2pandas = {
+    'String': str,
+    'Text': str,
+    'Integer': int,
+    'Datetime': Timestamp
+
+}
+
