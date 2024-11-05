@@ -3,33 +3,34 @@ import time
 from collections.abc import Iterable, Awaitable
 import concurrent.futures
 import random
-from api_base import Interface, SPInterface
-from pandas import DataFrame
+from api_base import Interface, SPInterface, SGInterface
+from pandas import DataFrame, date_range, Timedelta
 
 
-class ETLManager:
+class APIETL:
     def __init__( self, rate: float, n_workers: int, start_date: str, end_date: str, interface):
         self.n_workers = n_workers
         self.rate = rate
         self.start_date = start_date
         self.end_date = end_date
         self.interface = interface
+        self.query_limit = 500
 
 
-    async def rate_limited_offset(self, queue):
+    async def rate_limited_dates(self, queue):
         """Generates offsets at a controlled rate and inserts them into the queue"""
-        offset = 0
-        while True:
-            await queue.put(offset)  
-            offset += 1
+        for i in date_range(self.start_date, self.end_date):
+            date_tuple = tuple( 
+                i.strftime('%Y-%m-%d') for i in (i, i + Timedelta(days=1))
+            )
+            await queue.put(date_tuple)
             await asyncio.sleep(1 / self.rate)
 
 
     async def run(self):
         """Runs ETL process, starts rate limited queue and create pool of workers"""
-
         self.queue = asyncio.Queue(maxsize=self.n_workers)
-        queue_input = asyncio.create_task(self.rate_limited_offset(self.queue))
+        queue_input = asyncio.create_task(self.rate_limited_dates(self.queue))
 
         workers = [
             asyncio.create_task(self.worker(i)) 
@@ -42,36 +43,33 @@ class ETLManager:
 
     async def worker(self, worker_i):
         """
-        Worker in pool which retrieves offset from async queue and performs etl
-        process for that offset in the api database.
-        Cancel worker once dt has passed today
+        Worker in pool which retrieves date from async queue and performs etl process for that date in the api database.
         """
         worker_interface = self.interface()
-        for i in range(2):
-            print(f'{worker_i = }, {i = }')
-            offset = await self.queue.get()
+        while True:
+            date_tuple = await self.queue.get()
+            for i in range(30):
+                offset = i * self.query_limit
 
-            print(f"Worker for {offset = } started")
-            query_result = await self.worker_api_call(offset, worker_interface)
-            await self.worker_insert_entries(query_result, worker_interface)
+                print(f"{worker_i = :<10} on date ={ date_tuple[0]}")
+                query_result = await self.worker_api_call(worker_interface, date_tuple, offset)
+                await self.worker_insert_entries(query_result, worker_interface)
 
-            print(f"{worker_i} received result of length {len(query_result)} for {offset = }")
-            if query_result is None:
-                return None
+                if not len(query_result):
+                    break
 
 
-    async def worker_api_call(self, offset: int, worker_interface: Interface):
-        """
-        Extract data from api
-        """
+    async def worker_api_call(self, worker_interface: Interface, date_tuple: tuple[str], offset: int):
+        """Extract data from api"""
         loop = asyncio.get_running_loop()
 
         with concurrent.futures.ThreadPoolExecutor() as pool:
             query_result = await loop.run_in_executor(
                 pool,
                 worker_interface.api_interface.query_api,
-                offset, self.start_date, self.end_date
+                offset, date_tuple[0], date_tuple[1], self.query_limit
             )
+
         return query_result
 
 
@@ -81,9 +79,12 @@ class ETLManager:
 
 
 async def main():
-    etler = ETLManager(2, 3, '2024-01-01', '2024-02-01', SPInterface)
-    await etler.run()
-        
+    sp_etl = APIETL(2, 5, '2016-01-01', '2025-01-01', SPInterface)
+    await sp_etl.run()
+    
+    sg_etl = APIETL(2, 5, '2016-01-01', '2025-01-01', SGInterface)
+    await sg_etl.run()
+    
 
 if __name__ == '__main__':
     asyncio.run(main())

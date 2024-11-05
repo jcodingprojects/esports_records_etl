@@ -45,7 +45,8 @@ class APIInterface():
             where=(
                 f"{self.cargo_suffix}.DateTime_UTC >= '{start_date} 00:00:00' AND "
                 f"{self.cargo_suffix}.DateTime_UTC <= '{end_date} 00:00:00'"
-            )
+            ),
+            order_by=f"{self.cargo_suffix}.DateTime_UTC"
         )
         query_result = pd.DataFrame(query_result)
         query_result.columns = [c.replace(' ', '_') for c in query_result.columns]
@@ -81,7 +82,6 @@ class LocalInterface():
                  field_wikidtypes: DTypeEnum, schema_name: str, on_conflict: str = ''):
         self.table_name = table_name
         self.temp_table_name = 'temp_' + self.table_name
-        self.on_conflict = on_conflict
         self.fields = fields
         self.field_wikidtypes = field_wikidtypes
         self.schema_name = schema_name
@@ -100,15 +100,15 @@ class LocalInterface():
             self.temp_table_name, 
             records=entries.itertuples(index=False)
         )
-
+        on_conflict = f"ON CONFLICT ON CONSTRAINT {self.table_name}_unique DO NOTHING"
         await conn.execute(
             f"INSERT INTO {self.schema_name}.{self.table_name} ({table_str}) "
-            f"SELECT {table_str} FROM {self.temp_table_name} {self.on_conflict}"
+            f"SELECT {table_str} FROM {self.temp_table_name} {on_conflict};"
         )
 
 
     def get_create_temp_query(self):
-        tc = QueryCreator('', self.temp_table_name, self.fields, self.field_wikidtypes)
+        tc = QueryCreator('', self.temp_table_name, self.fields, self.field_wikidtypes, [])
         return tc.get_create_temp_query()
 
 
@@ -117,12 +117,17 @@ class Interface():
             self, schema_name: str, table_name: str, fields: FieldEnum, 
             field_dtypes: DTypeEnum, cargotable_name: str, cargo_suffix: str, on_conflict: str = ''
     ) -> None:
-        self.api_interface = APIInterface(fields, field_dtypes, cargo_suffix, cargotable_name)
-        self.local_interface = LocalInterface(table_name, fields, field_dtypes, schema_name)
+        self.api_interface = APIInterface(
+            fields, field_dtypes, cargo_suffix, cargotable_name
+        )
+        self.local_interface = LocalInterface(
+            table_name, fields, field_dtypes, schema_name, on_conflict
+        )
 
 
 class SGInterface(Interface):
     def __init__(self):
+        on_conflict = """"""
         super().__init__(
             schema_name='fandom_schema', table_name='scoreboard_games', fields=SGFields, field_dtypes=SGDTypes,
             cargotable_name='ScoreboardGames', cargo_suffix='SG'
@@ -133,7 +138,7 @@ class SPInterface(Interface):
     def __init__(self):
         super().__init__(
             schema_name='fandom_schema', table_name='scoreboard_players', fields=SPFields, field_dtypes=SPDTypes,
-            cargotable_name='ScoreboardPlayers', cargo_suffix='SP'
+            cargotable_name='ScoreboardPlayers', cargo_suffix='SP', 
     )
 
 
@@ -154,5 +159,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-
