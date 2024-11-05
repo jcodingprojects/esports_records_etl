@@ -2,7 +2,6 @@ from mwrogue.esports_client import EsportsClient
 from mwrogue.auth_credentials import AuthCredentials
 
 from sqlalchemy import create_engine
-from psycopg2 import connect
 import asyncpg
 import asyncio
 
@@ -16,17 +15,6 @@ class DBConnection:
     db_host = local_ip
     db_name = local_dbname
     db_port = local_port
-
-    @classmethod
-    def get_psycop_conn(cls):
-        """Return a psycopg2 connection object to the local database."""
-        return connect(
-            database=cls.db_name,
-            user=cls.db_username,
-            password=cls.db_password,
-            host=cls.db_host,
-            port=cls.db_port
-        )
 
 
     @classmethod

@@ -1,7 +1,7 @@
 from connection_info import DBConnection
 from asyncpg import Connection
 import asyncio
-from fields import FieldEnum, DTypeEnum, dtype_wiki2psql, SPFields, SPDTypes, SGFields
+from fields import FieldEnum, DTypeEnum, dtype_wiki2psql, SPFields, SPDTypes, SGFields, SGDTypes
 
 """
 GRANT SCHEMA fandom_schema;
@@ -17,6 +17,7 @@ class TableCreator:
             field_dtypes: DTypeEnum 
     ) -> None:
         self.table_name = table_name
+        self.schema_name = schema_name
         self.qc = QueryCreator(schema_name, table_name, fields, field_dtypes)
 
 
@@ -39,12 +40,12 @@ class TableCreator:
         """
         Returns Bool as to whether table already exists
         """
-        my_str = await conn.execute(f"""
+        fandom_tables = await conn.execute(f"""
             select table_name from information_schema.tables 
-            where table_schema = 'public' and table_name = '{self.table_name}';
+            where table_schema = '{self.schema_name}' and table_name = '{self.table_name}';
         """)
 
-        return True if my_str == 'SELECT 1' else False
+        return fandom_tables == 'SELECT 1'
 
     
 class QueryCreator:
@@ -74,7 +75,7 @@ class QueryCreator:
         id_str = 'id SERIAL PRIMARY KEY, \n'
         created_str = 'created_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP\n'
         
-        col_fields = id_str + col_fields + created_str
+        col_fields = id_str + col_fields + ',\n' + created_str
 
         create_query = f"""
             CREATE TABLE {self.schema_name}.{self.table_name} (
@@ -92,8 +93,10 @@ class QueryCreator:
         return create_temp_query
 
 async def main() -> None:
-    SGCreator = TableCreator('fandom_schema', 'test', SPFields, SPDTypes)
-    print(await SGCreator())
+    sg_table_maker = TableCreator('fandom_schema', 'scoreboard_games', SGFields, SGDTypes)
+    sp_table_maker = TableCreator('fandom_schema', 'scoreboard_players', SPFields, SPDTypes)
+    print(await sg_table_maker())
+    print(await sp_table_maker())
 
 
 if __name__ == '__main__':

@@ -43,7 +43,7 @@ class APIInterface():
             limit=limit,
             offset=offset,
             where=(
-                f"{self.cargo_suffix}.DateTime_UTC >= '{start_date} 00:00:00' AND"
+                f"{self.cargo_suffix}.DateTime_UTC >= '{start_date} 00:00:00' AND "
                 f"{self.cargo_suffix}.DateTime_UTC <= '{end_date} 00:00:00'"
             )
         )
