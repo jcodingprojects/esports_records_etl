@@ -242,7 +242,6 @@ dtype_wiki2psql = {
     'List of String delimiter: ;': 'TEXT[]'
 }
 
-
 dtype_wiki2pandas = {
     'String': 'string',
     'Text': 'string',

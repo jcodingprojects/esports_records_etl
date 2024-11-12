@@ -1,0 +1,5 @@
+local_dbname = ''
+local_username = ''
+local_password = ''
+local_ip = ''
+local_port = ''

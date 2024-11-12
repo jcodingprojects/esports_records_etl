@@ -1,2 +1,6 @@
-local_config.py
-api_config.py
+config_files/api_config.py
+config_files/local_config.py
+config_files/__pycache__
+config_files/__init__.py
+__pycache__
+esports_records_etl.egg-info

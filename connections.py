@@ -5,8 +5,8 @@ from sqlalchemy import create_engine
 import asyncpg
 import asyncio
 
-from api_config import api_username, api_password
-from local_config import local_username, local_password, local_dbname, local_ip, local_port
+from .config_files.api_config import api_username, api_password
+from .config_files.local_config import local_username, local_password, local_dbname, local_ip, local_port
 
 
 class DBConnection:
@@ -15,7 +15,6 @@ class DBConnection:
     db_host = local_ip
     db_name = local_dbname
     db_port = local_port
-
 
     @classmethod
     async def get_async_con(cls) -> asyncpg.Connection:
@@ -60,5 +59,4 @@ class ApiConnection:
 
     @classmethod
     def print_conn_info(cls):
-        print(f"Api connection info: \n\
-              api username = {cls.api_username}")
+        print(f"Api connection info: \napi username = {cls.api_username}")

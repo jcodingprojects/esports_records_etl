@@ -1,4 +1,4 @@
-from connection_info import DBConnection
+from connections import DBConnection
 from asyncpg import Connection
 import asyncio
 from fields import FieldEnum, DTypeEnum, dtype_wiki2psql, SPFields, SPDTypes, SGFields, SGDTypes

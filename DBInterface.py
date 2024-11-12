@@ -1,7 +1,7 @@
 import pandas as pd
 from fields import FieldEnum, SPFields, SGFields, DTypeEnum, SPDTypes, SGDTypes
-from connection_info import ApiConnection, DBConnection
-from configure_psql_tables import QueryCreator
+from connections import ApiConnection, DBConnection
+from postgres_conf import QueryCreator
 
 
 class APIInterface():

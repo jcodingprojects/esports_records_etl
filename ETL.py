@@ -3,7 +3,7 @@ import time
 from collections.abc import Iterable, Awaitable
 import concurrent.futures
 import random
-from api_base import Interface, SPInterface, SGInterface
+from DBInterface import Interface, SPInterface, SGInterface
 from pandas import DataFrame, date_range, Timedelta
 
 
@@ -16,8 +16,7 @@ class APIETL:
         self.interface = interface
         self.query_limit = 500
 
-
-    async def rate_limited_dates(self, queue):
+    async def rate_limited_dates(self, queue: asyncio.Queue):
         """Generates offsets at a controlled rate and inserts them into the queue"""
         for i in date_range(self.start_date, self.end_date):
             date_tuple = tuple( 
@@ -25,7 +24,8 @@ class APIETL:
             )
             await queue.put(date_tuple)
             await asyncio.sleep(1 / self.rate)
-
+        await queue.join()
+        queue.shutdown()
 
     async def run(self):
         """Runs ETL process, starts rate limited queue and create pool of workers"""
@@ -40,24 +40,26 @@ class APIETL:
         await asyncio.gather(*workers)
         queue_input.cancel()
 
-
     async def worker(self, worker_i):
         """
         Worker in pool which retrieves date from async queue and performs etl process for that date in the api database.
         """
         worker_interface = self.interface()
         while True:
-            date_tuple = await self.queue.get()
-            for i in range(30):
+            try:
+                date_tuple = await self.queue.get()
+            except asyncio.QueueShutDown:
+                break
+            
+            for i in range(5):
                 offset = i * self.query_limit
-
-                print(f"{worker_i = :<10} on date ={ date_tuple[0]}")
                 query_result = await self.worker_api_call(worker_interface, date_tuple, offset)
                 await self.worker_insert_entries(query_result, worker_interface)
+                print(f"{worker_i = :<5} on date = { date_tuple[0]: <8} processed {len(query_result):<5} entries")
 
                 if not len(query_result):
                     break
-
+            self.queue.task_done()
 
     async def worker_api_call(self, worker_interface: Interface, date_tuple: tuple[str], offset: int):
         """Extract data from api"""
@@ -72,14 +74,13 @@ class APIETL:
 
         return query_result
 
-
     async def worker_insert_entries(self, query_result: DataFrame, worker_interface: Interface):
         await worker_interface.local_interface.insert_new(query_result)
         return None
 
 
 async def main():
-    sp_etl = APIETL(2, 5, '2016-01-01', '2025-01-01', SPInterface)
+    sp_etl = APIETL(2, 5, '2016-10-15', '2024-11-01', SPInterface)
     await sp_etl.run()
     
     sg_etl = APIETL(2, 5, '2016-01-01', '2025-01-01', SGInterface)
