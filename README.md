@@ -4,6 +4,6 @@ Uses asyncio and asyncpg to asynchronously query the api for the raw data, proce
 
 ## Overview:
 
-- configure_psql_tables provides functionality to create local postgres schema and tables for storing extracted data in.
-- etl_implementation provides standard asyncronous worker factory implementation, and uses api_base to query the lol fandom API then load into the local database.
-- configure_psql_tables and etl_implementation can be ran as standalone scripts to create postgreSQL tables then to extract individual player game records as well as team records from lol fandom. Rate limiting is set to 2 queries per second. 
+- postgres_conf.py provides functionality to create local postgres schema and tables for storing extracted data in.
+- ETL.py provides standard asyncronous worker factory implementation, and uses DBInterface to query the lol fandom API then load into the local database.
+- postgres_conf.py and ETL.py can be ran as standalone scripts to create postgreSQL tables then to extract individual player game records as well as team records from lol fandom. Rate limiting is set to 2 queries per second. 
